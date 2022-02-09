@@ -20,6 +20,7 @@ enum syscall_numbers
 namespace syscall_direct
 {
 	static void* shellcode_allocation = 0;
+	static uintptr_t module_base = 0;
 
 	namespace helpers
 	{
@@ -80,6 +81,8 @@ namespace syscall_direct
 					}
 				}
 			}
+
+			return 0;
 		}
 	}
 
@@ -104,32 +107,18 @@ namespace syscall_direct
 
 	template <typename T, typename ...args> T create_syscall(LPCSTR syscall_name, args... arguments)
 	{
-		uintptr_t h_module = syscall_direct::helpers::get_module_base("ntdll.dll");
+		if (!syscall_direct::module_base)
+			syscall_direct::module_base = syscall_direct::helpers::get_module_base("ntdll.dll");
 
-		if (h_module)
+		if (syscall_direct::module_base)
 		{
-			uintptr_t export_address = syscall_direct::helpers::get_export_address(h_module, syscall_name);
+			uintptr_t export_address = syscall_direct::helpers::get_export_address(syscall_direct::module_base, syscall_name);
 
 			if (export_address != 0)
 			{
-				int syscall_index = *(int*)(export_address + 0x4);
+				int syscall_number = *(int*)(export_address + 0x4);
 
-				if (!syscall_direct::shellcode_allocation)
-				{
-					size_t size = sizeof(syscall_shellcode);
-					syscall_direct::create_syscall_by_syscall_number<NTSTATUS>(ZwAllocateVirtualMemory, GetCurrentProcess(), (PVOID*)&shellcode_allocation, 0, &size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-				}
-
-				if (syscall_direct::shellcode_allocation != nullptr)
-				{
-					memcpy(&syscall_shellcode[4], &syscall_index, sizeof(int));
-					memcpy(syscall_direct::shellcode_allocation, &syscall_shellcode, sizeof(syscall_shellcode));
-
-					T(__stdcall * func)(args...);
-					*(void**)&func = syscall_direct::shellcode_allocation;
-					
-					return func(arguments...);
-				}
+				return syscall_direct::create_syscall_by_syscall_number<T>(syscall_number, arguments...);
 			}
 		}
 
