@@ -15,6 +15,18 @@ unsigned char syscall_shellcode[]
 enum syscall_numbers
 {
 	ZwAllocateVirtualMemory = 0x18,
+	ZwAllocateVirtualMemoryEx = 0x76,
+	ZwAllocateUuids = 0x75,
+	ZwClose = 0xf,
+	ZwContinue = 0x43,
+	ZwCreateFile = 0x55,
+	ZwMapViewOfSection = 0x28,
+	ZwOpenFile = 0x33,
+	ZwQueryInformationProcess = 0x19,
+	ZwQueryInformationThread = 0x25,
+	ZwFreeVirtualMemory = 0x1e,
+	ZwProtectVirtualMemory = 0x50,
+	NtAddDriverEntry = 0x6b,
 };
 
 namespace syscall_direct
